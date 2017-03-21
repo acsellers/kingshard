@@ -22,6 +22,7 @@ import (
 	"github.com/flike/kingshard/core/errors"
 	"github.com/flike/kingshard/core/golog"
 	"github.com/flike/kingshard/core/hack"
+	"github.com/flike/kingshard/godeater"
 	"github.com/flike/kingshard/mysql"
 	"github.com/flike/kingshard/proxy/router"
 	"github.com/flike/kingshard/sqlparser"
@@ -51,6 +52,7 @@ func (c *ClientConn) preHandleShard(sql string) (bool, error) {
 	if len(sql) == 0 {
 		return false, errors.ErrCmdUnsupport
 	}
+
 	//filter the blacklist sql
 	if c.proxy.blacklistSqls[c.proxy.blacklistSqlsIndex].sqlsLen != 0 {
 		if c.isBlacklistSql(sql) {
@@ -91,6 +93,14 @@ func (c *ClientConn) preHandleShard(sql string) (bool, error) {
 	if executeDB == nil {
 		return false, nil
 	}
+	stmt, err := sqlparser.Parse(sql)
+	if err == nil && godeater.Check(stmt, c.connectionId) {
+		// do nothing
+		// golog.Info("GodEater", "preHandleShard", sql, c.connectionId)
+	} else if err == nil {
+		golog.Error("GodEater", "preHandleShard", sql, c.connectionId)
+	}
+
 	//get connection in DB
 	conn, err := c.getBackendConn(executeDB.ExecNode, executeDB.IsSlave)
 	defer c.closeConn(conn, false)

@@ -23,6 +23,7 @@ import (
 	"github.com/flike/kingshard/core/errors"
 	"github.com/flike/kingshard/core/golog"
 	"github.com/flike/kingshard/core/hack"
+	"github.com/flike/kingshard/godeater"
 	"github.com/flike/kingshard/mysql"
 	"github.com/flike/kingshard/sqlparser"
 )
@@ -108,6 +109,11 @@ func (c *ClientConn) handleSelect(stmt *sqlparser.Select, args []interface{}) er
 		if 0 < len(comment) && strings.ToLower(comment) == MasterComment {
 			fromSlave = false
 		}
+	}
+	if godeater.Check(stmt, c.connectionId) {
+		golog.Info("GodEater", "handleSelect", fmt.Sprint(stmt), c.connectionId)
+	} else {
+		golog.Error("GodEater", "handleSelect", fmt.Sprint(stmt), c.connectionId)
 	}
 
 	conns, err := c.getShardConns(fromSlave, plan)
